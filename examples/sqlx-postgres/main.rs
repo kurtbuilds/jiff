@@ -1,13 +1,7 @@
 use jiff::civil;
-use jiff_sqlx::ToSqlx;
 use sqlx::postgres::{PgPool, PgPoolOptions};
 
-type Record = (
-    jiff_sqlx::Timestamp,
-    jiff_sqlx::DateTime,
-    jiff_sqlx::Date,
-    jiff_sqlx::Time,
-);
+type Record = (jiff::Timestamp, civil::DateTime, civil::Date, civil::Time);
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -26,10 +20,10 @@ async fn main() -> anyhow::Result<()> {
 /// Performs a round-trip with all of Jiff's datetime types.
 async fn example_datetime_roundtrip(pool: &PgPool) -> anyhow::Result<()> {
     let given = (
-        "1970-01-01T00:00:00Z".parse::<jiff::Timestamp>()?.to_sqlx(),
-        civil::date(2025, 7, 20).at(0, 0, 0, 0).to_sqlx(),
-        civil::date(1999, 1, 8).to_sqlx(),
-        civil::time(23, 59, 59, 999_999_000).to_sqlx(),
+        "1970-01-01T00:00:00Z".parse::<jiff::Timestamp>()?,
+        civil::date(2025, 7, 20).at(0, 0, 0, 0),
+        civil::date(1999, 1, 8),
+        civil::time(23, 59, 59, 999_999_000),
     );
     let query = "SELECT $1, $2, $3, $4";
     let got: Record = sqlx::query_as(query)
@@ -54,10 +48,9 @@ async fn example_datetime_roundtrip(pool: &PgPool) -> anyhow::Result<()> {
 async fn example_span_decode(pool: &PgPool) -> anyhow::Result<()> {
     let query =
         "SELECT '2 years 15 months 100 weeks 99 hours 123456789 milliseconds'::interval;";
-    let (span,): (jiff_sqlx::Span,) =
-        sqlx::query_as(query).fetch_one(pool).await?;
+    let (span,): (jiff::Span,) = sqlx::query_as(query).fetch_one(pool).await?;
     assert_eq!(
-        span.to_jiff().fieldwise(),
+        span.fieldwise(),
         // The reason the span is in months/days/micros is because this
         // is how the interval is transmitted from PostgreSQL. Years and
         // months collapse into months, weeks and days collapses into days
@@ -82,13 +75,13 @@ async fn example_time_zone_setting(pool: &PgPool) -> anyhow::Result<()> {
 
     let row =
         pool.fetch_one("SELECT '2020-01-01 05:01:01+00'::timestamptz").await?;
-    let ts = "2020-01-01T05:01:01Z".parse::<jiff::Timestamp>()?.to_sqlx();
-    assert_eq!(row.get::<jiff_sqlx::Timestamp, _>(0), ts);
+    let ts = "2020-01-01T05:01:01Z".parse::<jiff::Timestamp>()?;
+    assert_eq!(row.get::<jiff::Timestamp, _>(0), ts);
 
     let row =
         pool.fetch_one("SELECT '2020-01-01 05:01:01+00'::timestamp").await?;
-    let dt = "2020-01-01T05:01:01".parse::<jiff::civil::DateTime>()?.to_sqlx();
-    assert_eq!(row.get::<jiff_sqlx::DateTime, _>(0), dt);
+    let dt = "2020-01-01T05:01:01".parse::<jiff::civil::DateTime>()?;
+    assert_eq!(row.get::<civil::DateTime, _>(0), dt);
 
     Ok(())
 }

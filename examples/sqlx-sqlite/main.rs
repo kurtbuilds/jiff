@@ -1,6 +1,5 @@
 use anyhow::Context;
 use jiff::civil;
-use jiff_sqlx::ToSqlx;
 use sqlx::SqlitePool;
 
 #[tokio::main]
@@ -17,18 +16,13 @@ async fn main() -> anyhow::Result<()> {
 
 /// Performs a round-trip with all of Jiff's datetime types.
 async fn example_datetime_roundtrip(pool: &SqlitePool) -> anyhow::Result<()> {
-    type Record = (
-        jiff_sqlx::Timestamp,
-        jiff_sqlx::DateTime,
-        jiff_sqlx::Date,
-        jiff_sqlx::Time,
-    );
+    type Record = (jiff::Timestamp, civil::DateTime, civil::Date, civil::Time);
 
     let given = (
-        "1970-01-01T00:00:00Z".parse::<jiff::Timestamp>()?.to_sqlx(),
-        civil::date(2025, 7, 20).at(0, 0, 0, 0).to_sqlx(),
-        civil::date(1999, 1, 8).to_sqlx(),
-        civil::time(23, 59, 59, 999_999_999).to_sqlx(),
+        "1970-01-01T00:00:00Z".parse::<jiff::Timestamp>()?,
+        civil::date(2025, 7, 20).at(0, 0, 0, 0),
+        civil::date(1999, 1, 8),
+        civil::time(23, 59, 59, 999_999_999),
     );
     let query = "SELECT $1, $2, $3, $4";
     let got: Record = sqlx::query_as(query)
@@ -61,15 +55,15 @@ async fn example_datetime_roundtrip(pool: &SqlitePool) -> anyhow::Result<()> {
 /// 1738895610
 /// ```
 async fn example_timestamp_julian(pool: &SqlitePool) -> anyhow::Result<()> {
-    let given = "2025-02-06T21:33:30-05".parse::<jiff::Timestamp>()?.to_sqlx();
+    let given = "2025-02-06T21:33:30-05".parse::<jiff::Timestamp>()?;
     let query = "SELECT julianday($1);";
-    let (got,): (jiff_sqlx::Timestamp,) =
+    let (got,): (jiff::Timestamp,) =
         sqlx::query_as(query).bind(&given).fetch_one(pool).await?;
 
     // Play stupid games, win stupid prizes. The loss of precision here
     // is what you get when you use floating point to represent datetimes.
     let expected =
-        "2025-02-07T02:33:29.99981308Z".parse::<jiff::Timestamp>()?.to_sqlx();
+        "2025-02-07T02:33:29.99981308Z".parse::<jiff::Timestamp>()?;
     assert_eq!(got, expected);
 
     Ok(())

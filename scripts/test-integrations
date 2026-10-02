@@ -15,8 +15,6 @@ integrations=(
   "jiff-diesel mysql"
   "jiff-diesel postgres"
   "jiff-icu std,zoned"
-  "jiff-sqlx postgres"
-  "jiff-sqlx sqlite"
 )
 for v in "${integrations[@]}"; do
   crate="$(echo $v | awk '{print $1}')"
@@ -47,4 +45,10 @@ for v in "${integrations[@]}"; do
     --no-default-features \
     --features "$feature" \
     --manifest-path "crates/$crate/Cargo.toml"
+done
+
+# SQLx support lives in Jiff itself (it used to be the `jiff-sqlx` crate).
+for feature in sqlx-postgres sqlx-sqlite; do
+  echo "===== TESTING JIFF WITH FEATURE: $feature ====="
+  cargo test --lib --features "$feature"
 done

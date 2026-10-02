@@ -1,4 +1,6 @@
-use jiff::fmt::temporal::DateTimeParser;
+use alloc::{string::ToString, vec::Vec};
+
+use crate::{civil, fmt::temporal::DateTimeParser, SignedDuration, Timestamp};
 use sqlx::sqlite::{
     Sqlite, SqliteArgumentValue, SqliteTypeInfo, SqliteValueRef,
 };
@@ -8,8 +10,6 @@ use sqlx::{
     error::BoxDynError,
     types::Type,
 };
-
-use crate::{Date, DateTime, Time, Timestamp, ToSqlx};
 
 static PARSER: DateTimeParser = DateTimeParser::new();
 
@@ -29,7 +29,7 @@ impl Encode<'_, Sqlite> for Timestamp {
         &self,
         buf: &mut Vec<SqliteArgumentValue<'_>>,
     ) -> Result<IsNull, BoxDynError> {
-        Encode::<Sqlite>::encode(self.to_jiff().to_string(), buf)
+        Encode::<Sqlite>::encode(self.to_string(), buf)
     }
 }
 
@@ -46,85 +46,83 @@ impl<'r> Decode<'r, Sqlite> for Timestamp {
         // this though...)
         if text.contains(':') {
             let date = PARSER.parse_timestamp(text)?;
-            return Ok(date.to_sqlx());
+            return Ok(date);
         }
         let julian_days = text.parse::<f64>()?;
-        julian_days_to_timestamp(julian_days).map(jiff::Timestamp::to_sqlx)
+        julian_days_to_timestamp(julian_days)
     }
 }
 
-impl Type<Sqlite> for DateTime {
+impl Type<Sqlite> for civil::DateTime {
     fn type_info() -> SqliteTypeInfo {
         <str as Type<Sqlite>>::type_info()
     }
 }
 
-impl Encode<'_, Sqlite> for DateTime {
+impl Encode<'_, Sqlite> for civil::DateTime {
     fn encode_by_ref(
         &self,
         buf: &mut Vec<SqliteArgumentValue<'_>>,
     ) -> Result<IsNull, BoxDynError> {
-        Encode::<Sqlite>::encode(self.to_jiff().to_string(), buf)
+        Encode::<Sqlite>::encode(self.to_string(), buf)
     }
 }
 
-impl<'r> Decode<'r, Sqlite> for DateTime {
+impl<'r> Decode<'r, Sqlite> for civil::DateTime {
     fn decode(value: SqliteValueRef<'r>) -> Result<Self, BoxDynError> {
         let text = <&[u8] as Decode<Sqlite>>::decode(value)?;
         let date = PARSER.parse_datetime(text)?;
-        Ok(date.to_sqlx())
+        Ok(date)
     }
 }
 
-impl Type<Sqlite> for Date {
+impl Type<Sqlite> for civil::Date {
     fn type_info() -> SqliteTypeInfo {
         <str as Type<Sqlite>>::type_info()
     }
 }
 
-impl Encode<'_, Sqlite> for Date {
+impl Encode<'_, Sqlite> for civil::Date {
     fn encode_by_ref(
         &self,
         buf: &mut Vec<SqliteArgumentValue<'_>>,
     ) -> Result<IsNull, BoxDynError> {
-        Encode::<Sqlite>::encode(self.to_jiff().to_string(), buf)
+        Encode::<Sqlite>::encode(self.to_string(), buf)
     }
 }
 
-impl<'r> Decode<'r, Sqlite> for Date {
+impl<'r> Decode<'r, Sqlite> for civil::Date {
     fn decode(value: SqliteValueRef<'r>) -> Result<Self, BoxDynError> {
         let text = <&[u8] as Decode<Sqlite>>::decode(value)?;
         let date = PARSER.parse_date(text)?;
-        Ok(date.to_sqlx())
+        Ok(date)
     }
 }
 
-impl Type<Sqlite> for Time {
+impl Type<Sqlite> for civil::Time {
     fn type_info() -> SqliteTypeInfo {
         <str as Type<Sqlite>>::type_info()
     }
 }
 
-impl Encode<'_, Sqlite> for Time {
+impl Encode<'_, Sqlite> for civil::Time {
     fn encode_by_ref(
         &self,
         buf: &mut Vec<SqliteArgumentValue<'_>>,
     ) -> Result<IsNull, BoxDynError> {
-        Encode::<Sqlite>::encode(self.to_jiff().to_string(), buf)
+        Encode::<Sqlite>::encode(self.to_string(), buf)
     }
 }
 
-impl<'r> Decode<'r, Sqlite> for Time {
+impl<'r> Decode<'r, Sqlite> for civil::Time {
     fn decode(value: SqliteValueRef<'r>) -> Result<Self, BoxDynError> {
         let text = <&[u8] as Decode<Sqlite>>::decode(value)?;
         let date = PARSER.parse_time(text)?;
-        Ok(date.to_sqlx())
+        Ok(date)
     }
 }
 
-fn julian_days_to_timestamp(
-    days: f64,
-) -> Result<jiff::Timestamp, BoxDynError> {
+fn julian_days_to_timestamp(days: f64) -> Result<Timestamp, BoxDynError> {
     // The Unix epoch in terms of SQLite julian days:
     //
     //     sqlite> select julianday('1970-01-01T00:00:00Z');
@@ -136,6 +134,6 @@ fn julian_days_to_timestamp(
     static SECONDS_PER_DAY: f64 = 86400.0;
 
     let timestamp = (days - UNIX_EPOCH_AS_JULIAN_DAYS) * SECONDS_PER_DAY;
-    let sdur = jiff::SignedDuration::try_from_secs_f64(timestamp)?;
-    Ok(jiff::Timestamp::from_duration(sdur)?)
+    let sdur = SignedDuration::try_from_secs_f64(timestamp)?;
+    Ok(Timestamp::from_duration(sdur)?)
 }

@@ -11,8 +11,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.95"
-jiff = { path = "../.." }
-jiff-sqlx = { path = "../../crates/jiff-sqlx", features = ["postgres"] }
+jiff = { path = "../..", features = ["sqlx-postgres"] }
 sqlx = { version = "0.8.3", features = ["postgres", "runtime-tokio"] }
 tokio = { version = "1.43.0", features = ["full"] }
 

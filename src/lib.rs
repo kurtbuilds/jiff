@@ -617,6 +617,16 @@ For more, see the [`fmt::serde`] sub-module. (This requires enabling Jiff's
   Temporal, but it's a mix of the "best" parts of RFC 3339, RFC 9557 and
   ISO 8601. See the [`fmt::temporal`] module for more details on the format
   used.
+* **sqlx-postgres** -
+  When enabled, Jiff's `Timestamp`, `civil::DateTime`, `civil::Date` and
+  `civil::Time` types implement SQLx's `Type`, `Encode` and `Decode` traits
+  for PostgreSQL. `Span` implements `Type` and `Decode` (but not `Encode`,
+  since encoding a `Span` as a PostgreSQL interval requires a relative
+  datetime). This adds a dependency on `sqlx` and requires `std`.
+* **sqlx-sqlite** -
+  When enabled, Jiff's `Timestamp`, `civil::DateTime`, `civil::Date` and
+  `civil::Time` types implement SQLx's `Type`, `Encode` and `Decode` traits
+  for SQLite. This adds a dependency on `sqlx` and requires `std`.
 * **js** -
   On _only_ the `wasm32-unknown-unknown` and `wasm64-unknown-unknown` targets,
   the `js` feature will add dependencies on `js-sys` and `wasm-bindgen`.
@@ -779,6 +789,8 @@ mod now;
 pub mod shared;
 mod signed_duration;
 mod span;
+#[cfg(any(feature = "sqlx-postgres", feature = "sqlx-sqlite"))]
+mod sqlx_impls;
 mod timestamp;
 pub mod tz;
 mod util;
