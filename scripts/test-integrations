@@ -50,5 +50,5 @@ done
 # SQLx support lives in Jiff itself (it used to be the `jiff-sqlx` crate).
 for feature in sqlx-postgres sqlx-sqlite; do
   echo "===== TESTING JIFF WITH FEATURE: $feature ====="
-  cargo test --lib --features "$feature"
+  cargo test -p jiff --lib --features "$feature"
 done
